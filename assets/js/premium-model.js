@@ -1,4 +1,4 @@
-// BODY FORM STUDIO / premium parametric base mesh loader v0.7
+// BODY FORM STUDIO / premium parametric base mesh loader v0.8
 // License: CC0 MakeHuman / MPFB2 base, baked as parametric GLB by nirholas/three.ws.
 // Remote URL points to the CC0 parametric-base in upstream GitHub; the
 // This module is optional: the in-repository procedural model remains a fallback.
@@ -37,6 +37,7 @@ function poseFashionArms(THREE, object){
   const parentQ=new THREE.Quaternion(),delta=new THREE.Quaternion();
   const inverse=new THREE.Quaternion(),localDelta=new THREE.Quaternion();
   let adjusted=0;
+  const angles=[];
   for(const side of ['Left','Right']){
     const upper=bones[side+'Arm'],fore=bones[side+'ForeArm'];
     if(!upper||!fore)continue;
@@ -45,19 +46,25 @@ function poseFashionArms(THREE, object){
     vector.subVectors(b,a);
     if(vector.length()<.02)continue;
     const sign=Math.sign(vector.x)|| (side==='Left'?1:-1);
-    // Portrait mannequin: elbow ~18° outward, forearm drops naturally.
-    const desired=new THREE.Vector3(sign*.31,-.944,.035).normalize();
+    const before=Math.acos(clamp(-vector.y,-1,1))*180/Math.PI;
+    // Fashion-display body: upper arms rest just outside the torso,
+    // fingertips roughly alongside the upper thighs instead of the T-pose.
+    const desired=new THREE.Vector3(sign*.19,-.98,.022).normalize();
     delta.setFromUnitVectors(vector.normalize(),desired);
     upper.parent.getWorldQuaternion(parentQ);
     inverse.copy(parentQ).invert();
     localDelta.copy(inverse).multiply(delta).multiply(parentQ);
     upper.quaternion.premultiply(localDelta).normalize();
     upper.updateMatrixWorld(true);
+    upper.getWorldPosition(a);fore.getWorldPosition(b);
+    vector.subVectors(b,a).normalize();
+    const after=Math.acos(clamp(-vector.y,-1,1))*180/Math.PI;
+    angles.push(side+': '+before.toFixed(1)+'° -> '+after.toFixed(1)+'°');
     adjusted++;
   }
   // Subtle hand rotation follows forearms; original fully articulated fingers
   // and wrists stay available for garment fitting.
-  return adjusted;
+  return { adjusted, angles };
 }
 
 // Sculpt an original, organic fashion-display face shell rather than hiding a
@@ -144,7 +151,7 @@ export async function createPremiumMannequin(THREE,state){
   const gltf=await loadPremiumSource();
   const source=cloneRig(gltf.scene);
   applyShape(THREE,source,state);
-  const posedArms=poseFashionArms(THREE,source);
+  const pose=poseFashionArms(THREE,source);
   source.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(source);
   const extent=new THREE.Vector3();
@@ -175,7 +182,8 @@ export async function createPremiumMannequin(THREE,state){
   root.userData.source='CC0 MakeHuman parametric GLB';
   root.userData.disposeOnRemove=true;
   root.userData.boneCount=0;
-  root.userData.posedArms=posedArms;
+  root.userData.posedArms=pose.adjusted;
+  root.userData.poseDiagnostics=pose.angles;
   root.userData.headSculpture='organic-faceless-v1';
   source.traverse(o=>{if(o.isBone)root.userData.boneCount++;});
   return root;
