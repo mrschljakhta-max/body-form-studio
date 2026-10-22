@@ -80,12 +80,27 @@ export async function createPremiumMannequin(THREE,state){
   if(!Number.isFinite(extent.y)||extent.y<.1)throw Error('Invalid mannequin bounding box');
   const factor=4.16/extent.y;
   const root=new THREE.Group();
-  root.add(source);
+  const display=new THREE.Group();
+  root.add(display);
+  display.add(source);
   source.scale.setScalar(factor);
-  // Align model to platform using world bounds before resizing.
+  // The original GLB remains fully morphable; positioning is only for display.
   source.position.set(-center.x*factor,-bounds.min.y*factor,-center.z*factor);
+  // Minimalist faceless porcelain mask: deliberate studio-style mannequin.
+  // Kept separate from the original CC0 rig so the source is not modified.
+  const faceMaterial=new THREE.MeshPhysicalMaterial({
+    color:0xe4d0ba,metalness:.035,roughness:.30,
+    clearcoat:.55,clearcoatRoughness:.24
+  });
+  const faceMesh=new THREE.Mesh(new THREE.SphereGeometry(1,72,56),faceMaterial);
+  const facePosition=3.805;
+  const headMaskRatio=state.headMask===false?0:1;
+  faceMesh.position.set(0,facePosition,.028);
+  faceMesh.scale.set(.235*headMaskRatio,.327*headMaskRatio,.268*headMaskRatio);
+  faceMesh.castShadow=true;
+  display.add(faceMesh);
   root.scale.setScalar(state.height/172);
-  root.userData.body=source;
+  root.userData.body=display;
   root.userData.source='CC0 MakeHuman parametric GLB';
   root.userData.disposeOnRemove=true;
   root.userData.boneCount=0;
