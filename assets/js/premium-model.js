@@ -1,6 +1,6 @@
-// BODY FORM STUDIO / premium base mesh loader v0.3
-// License: external female base mesh by Innerscene / MakeHuman CC0.
-// The original body mesh is not bundled until it can be imported into GitHub.
+// BODY FORM STUDIO / premium parametric base mesh loader v0.6
+// License: CC0 MakeHuman / MPFB2 base, baked as parametric GLB by nirholas/three.ws.
+// Remote URL points to the CC0 parametric-base in upstream GitHub; the
 // This module is optional: the in-repository procedural model remains a fallback.
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneRig } from 'three/addons/utils/SkeletonUtils.js';
