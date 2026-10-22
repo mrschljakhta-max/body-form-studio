@@ -1,3 +1,4 @@
+import { buildSculptedMannequin } from './mannequin.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -8,7 +9,7 @@ const PRESETS = {
   athletic: { height:174, bust:101, waist:70, hips:103, shoulders:52, muscle:93, belly:7, breast:48 }
 };
 const TITLES = { balanced:'BALANCED 01', curvy:'CURVY 02', slim:'SLIM 03', athletic:'ATHLETIC 04', custom:'CUSTOM / ТВОЯ ФОРМА' };
-const GARMENTS = {bodysuit:'BODYSUIT',bra:'BRA',panties:'UNDERWEAR',dress:'DRESS'};
+const GARMENTS = {mannequin:'MANNEQUIN',bodysuit:'BODYSUIT',bra:'BRA',panties:'UNDERWEAR',dress:'DRESS'};
 const COLORS = { burgundy:0x81374d, charcoal:0x252a32, champagne:0xc4a58a, ivory:0xe6ded3 };
 const $ = (s,scope=document) => scope.querySelector(s);
 const $$ = (s,scope=document) => [...scope.querySelectorAll(s)];
@@ -18,7 +19,7 @@ const state = {
   ...PRESETS.balanced, ...((stored&&typeof stored==='object')?Object.fromEntries(Object.entries(stored).filter(([k,v])=>k in PRESETS.balanced&&typeof v==='number')):{}),
   preset:(stored&&stored.preset)||'balanced',
   front:(stored&&['neutral','space','flat'].includes(stored.front))?stored.front:'neutral',
-  garment:(stored&&GARMENTS[stored.garment])?stored.garment:'bodysuit',
+  garment:(stored&&GARMENTS[stored.garment])?stored.garment:'mannequin',
   color:(stored&&COLORS[stored.color])?stored.color:'burgundy'
 };
 let renderer, scene, camera, orbit, model, frameID, previewMaterial, currentView='front', autoRotate=false, targetCamera=null, sceneReady=false, geometryTimer=null;
@@ -104,80 +105,20 @@ function fabricMaterial(){
 }
 function buildModel(){
   if(!sceneReady)return;
-  if(model){scene.remove(model);model.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material!==previewMaterial&&o.material.dispose)o.material.dispose();});}
-  const c=state,skin=bodyMaterial(),fabric=fabricMaterial(),dark=new THREE.MeshStandardMaterial({color:0x594a3d,metalness:.35,roughness:.35});
-  const root=new THREE.Group(),body=new THREE.Group();model=root;root.add(body);scene.add(root);
-  root.scale.setScalar(c.height/172);
-  const hp=c.hips/96,wp=c.waist/72,bp=c.bust/90,sp=c.shoulders/41,mp=c.muscle/100;
-  const hipX=.45*hp,shoulderX=.49*sp,upperArmX=shoulderX+.13,elbowX=shoulderX+.24,wristX=shoulderX+.29;
-  tubular(body,makeTorsoRings(c),skin);
-  ball(body,[0,3.49,0],[.155,.23,.155],skin);
-  ball(body,[0,3.86,.015],[.273,.35,.235],skin);
-  ball(body,[0,3.57,0],[.15,.1,.16],skin);
-  for(const s of [-1,1]){
-    const upperR=.13+mp*.045+(sp-1)*.025;
-    ball(body,[s*shoulderX,3.24,0],[upperR*1.25,.15,.18],skin);
-    segment(body,[s*upperArmX,3.21,0],[s*elbowX,2.67,.015],upperR*.95,upperR*.72,skin);
-    ball(body,[s*elbowX,2.66,.015],[upperR*.78,.115,.105],skin);
-    segment(body,[s*elbowX,2.61,.015],[s*wristX,2.11,.095],upperR*.77,.067+mp*.019,skin);
-    ball(body,[s*wristX,2.08,.09],[.067,.08,.067],skin);
-    ball(body,[s*(wristX+.012),1.89,.115],[.094,.19,.067],skin);
-    const centerX=s*(.215*hp);
-    const kneeX=s*(.22*hp+.02),ankleX=s*(.235*hp+.005);
-    const thighR=.225*hp+.02*mp;
-    ball(body,[centerX,1.76,0],[thighR*1.13,.30,.26*hp],skin);
-    segment(body,[centerX,1.82,.01],[kneeX,1.02,.05],thighR,.13+mp*.033,skin);
-    ball(body,[kneeX,1.04,.055],[.143+mp*.019,.155,.145],skin);
-    segment(body,[kneeX,1.0,.05],[ankleX,.27,.04],.143+mp*.027,.078+mp*.018,skin);
-    ball(body,[ankleX,.25,.04],[.082,.105,.083],skin);
-    ball(body,[ankleX,.115,.165],[.112,.11,.235],skin);
-    ball(body,[ankleX,.083,.308],[.11,.065,.13],skin);
-    if(mp>.75){
-      ball(body,[s*upperArmX,2.98,.03],[upperR*.99,.19,.125],skin);
-      ball(body,[centerX,1.39,.025],[thighR*.93,.31,.235],skin);
-    }
+  const next = buildSculptedMannequin(THREE,state);
+  next.userData.body.rotation.y=.12;
+  scene.add(next);
+  if(model){
+    scene.remove(model);
+    model.traverse(o=>{
+      if(o.geometry)o.geometry.dispose();
+      if(o.material){
+        const mats=Array.isArray(o.material)?o.material:[o.material];
+        for(const m of mats)m.dispose();
+      }
+    });
   }
-  const breastC=c.breast/100,breastBase=.15+breastC*.093;
-  for(const s of [-1,1]){
-    ball(body,[s*(.195*bp),3.015,.27],[breastBase,.13+breastC*.13,.13+breastC*.15],skin);
-  }
-  // Tailored clothing is illustrative, without simulated pattern geometry or medical claims.
-  if(c.garment==='bodysuit'||c.garment==='dress'){
-    const t=makeTorsoRings(c,.024);
-    let garmentRings=t.filter(r=>r.y>=2.02&&r.y<=3.22);
-    if(c.garment==='bodysuit')garmentRings=[{y:1.9,rx:hipX*.54,rz:.22},...garmentRings];
-    tubular(body,garmentRings,fabric);
-    if(c.garment==='bodysuit'){
-      segment(body,[-.3*bp,3.13,.07],[-.35*sp,3.41,.05],.025,.023,fabric);
-      segment(body,[.3*bp,3.13,.07],[.35*sp,3.41,.05],.025,.023,fabric);
-      ball(body,[0,1.97,.32],[.17*hp,.25,.055],fabric);
-    } else {
-      tubular(body,[{y:1.34,rx:hipX*1.55,rz:.54,z:.03},{y:1.53,rx:hipX*1.46,rz:.52,z:.03},{y:1.83,rx:hipX*1.16,rz:.42},{y:2.12,rx:hipX*1.04,rz:.37}],fabric);
-    }
-  } else if(c.garment==='bra'){
-    tubular(body,makeTorsoRings(c,.03).filter(r=>r.y>=2.88&&r.y<=3.22),fabric);
-    for(const s of [-1,1]){ball(body,[s*.195*bp,3.03,.40],[breastBase*1.04,.10+breastC*.13,.09+breastC*.15],fabric);
-      segment(body,[s*.24*bp,3.15,.35],[s*.3*sp,3.39,.06],.021,.018,fabric);}
-  } else if(c.garment==='panties'){
-    const under=[
-      {y:1.87,rx:hipX*.48,rz:.21},
-      {y:1.96,rx:hipX*.74,rz:.32},
-      {y:2.09,rx:hipX*1.03,rz:.38},
-      {y:2.26,rx:hipX*1.02,rz:.37}
-    ];tubular(body,under,fabric);
-  }
-  if(c.garment==='panties'||c.garment==='bodysuit'){
-    const frontSize=c.front==='space'?.15:c.front==='flat'?.018:.07;
-    ball(body,[0,2.015,.355+(frontSize*.35)],[.13+frontSize*.42,.13+frontSize*.25,.028+frontSize],fabric);
-  }
-  // Decorative joint seams create the mannequin look.
-  for(const s of [-1,1]){
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(.109,.004,6,34),dark);ring.position.set(s*elbowX,2.66,.018);ring.rotation.x=Math.PI/2;body.add(ring);
-    const knee=new THREE.Mesh(new THREE.TorusGeometry(.117,.004,6,34),dark);knee.position.set(s*(.22*hp+.02),1.03,.17);body.add(knee);
-  }
-  body.rotation.y=.14;
-  model.userData.body=body;
-  previewMaterial=skin;
+  model=next;
 }
 function createStage(){
   const platform=new THREE.Group();scene.add(platform);
@@ -191,8 +132,8 @@ function createStage(){
 function initScene(){
   scene=new THREE.Scene();
   const bounds=sceneEl.getBoundingClientRect();
-  camera=new THREE.PerspectiveCamera(37,bounds.width/Math.max(bounds.height,1),.1,150);
-  camera.position.set(0,2.25,7.9);
+  camera=new THREE.PerspectiveCamera(35,bounds.width/Math.max(bounds.height,1),.1,150);
+  camera.position.set(0,2.27,7.0);
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
   renderer.setSize(bounds.width,bounds.height);
@@ -204,7 +145,7 @@ function initScene(){
   sceneEl.innerHTML='';sceneEl.appendChild(renderer.domElement);
   orbit=new OrbitControls(camera,renderer.domElement);
   orbit.enablePan=false;orbit.enableDamping=true;orbit.dampingFactor=.065;
-  orbit.target.set(0,2.05,0);orbit.minDistance=5.4;orbit.maxDistance=12;
+  orbit.target.set(0,2.05,0);orbit.minDistance=5.2;orbit.maxDistance=12;
   orbit.minPolarAngle=.85;orbit.maxPolarAngle=2.08;
   orbit.addEventListener('start',()=>{autoRotate=false;$('#rotateBtn').classList.remove('active');$('#rotateBtn').setAttribute('aria-pressed','false');targetCamera=null;});
   const ambient=new THREE.HemisphereLight(0xf9eee2,0x3b4050,2.2);scene.add(ambient);
@@ -212,7 +153,7 @@ function initScene(){
   const rim=new THREE.DirectionalLight(0xffd2a5,3.6);rim.position.set(3,4,-4);scene.add(rim);
   const fill=new THREE.PointLight(0xb1c6db,36,10);fill.position.set(-3,2,-3);scene.add(fill);
   createStage();sceneReady=true;buildModel();
-  const resize=()=>{const rect=sceneEl.getBoundingClientRect();if(!rect.width||!rect.height)return;camera.aspect=rect.width/rect.height;camera.fov=rect.width<500?46:37;camera.updateProjectionMatrix();renderer.setSize(rect.width,rect.height,false);};
+  const resize=()=>{const rect=sceneEl.getBoundingClientRect();if(!rect.width||!rect.height)return;camera.aspect=rect.width/rect.height;camera.fov=rect.width<500?39:35;camera.updateProjectionMatrix();renderer.setSize(rect.width,rect.height,false);};
   window.addEventListener('resize',resize);new ResizeObserver(resize).observe(sceneEl);resize();
   $('#renderStatus').textContent='3D СЦЕНА АКТИВНА';
   const clock=new THREE.Clock();
@@ -241,7 +182,7 @@ function selectView(view){
   setActive('[data-view]','view',view);
   autoRotate=false;$('#rotateBtn').classList.remove('active');
   const distance=camera.position.distanceTo(orbit.target);
-  const v=view==='side'?new THREE.Vector3(distance,2.25,0):view==='back'?new THREE.Vector3(0,2.25,-distance):new THREE.Vector3(0,2.25,distance);
+  const v=view==='side'?new THREE.Vector3(distance,2.27,0):view==='back'?new THREE.Vector3(0,2.27,-distance):new THREE.Vector3(0,2.27,distance);
   targetCamera=v;
   if(model)model.userData.body.rotation.y=0;
 }
@@ -255,6 +196,6 @@ $$('[data-view]').forEach(b=>b.addEventListener('click',()=>selectView(b.dataset
 $('#rotateBtn').addEventListener('click',()=>{autoRotate=!autoRotate;targetCamera=null;$('#rotateBtn').classList.toggle('active',autoRotate);$('#rotateBtn').setAttribute('aria-pressed',String(autoRotate));});
 $('#applyBtn').addEventListener('click',()=>{updateModelSoon();toast('3D-модель оновлено');document.querySelector('.viewport').scrollIntoView({behavior:'smooth',block:'nearest'});});
 $('#saveBtn').addEventListener('click',()=>{try{localStorage.setItem('bodyform-profile-v1',JSON.stringify(state));toast('Профіль збережено тільки в цьому браузері');}catch{toast('Браузер забороняє локальне збереження');}});
-$('#resetBtn').addEventListener('click',()=>{Object.assign(state,PRESETS.balanced,{preset:'balanced',front:'neutral',garment:'bodysuit',color:'burgundy'});updateUI();updateModelSoon();selectView('front');toast('Налаштування скинуто');});
+$('#resetBtn').addEventListener('click',()=>{Object.assign(state,PRESETS.balanced,{preset:'balanced',front:'neutral',garment:'mannequin',color:'burgundy'});updateUI();updateModelSoon();selectView('front');toast('Налаштування скинуто');});
 updateUI();
 try{initScene();}catch(err){console.error('3D error',err);$('#renderStatus').textContent='ПОМИЛКА 3D';sceneEl.innerHTML='<div class="scene-loading">Не вдалося створити 3D-сцену. Перевір WebGL у браузері.</div>';}
