@@ -1,4 +1,4 @@
-// BODY FORM STUDIO · Anatomical mannequin geometry v0.2
+// BODY FORM STUDIO · Anatomical mannequin geometry v0.4
 // Procedural sculpted surfaces: continuous torso/bust, lofted limbs, hands, feet.
 // Units are visual studio units, not medically exact anthropometric dimensions.
 export function buildSculptedMannequin(THREE, state) {
@@ -10,8 +10,8 @@ export function buildSculptedMannequin(THREE, state) {
   root.userData.body = body;
 
   const skin = new THREE.MeshPhysicalMaterial({
-    color: 0xD5C1AA, metalness: 0.035, roughness: 0.32,
-    clearcoat: 0.34, clearcoatRoughness: 0.23
+    color: 0xE6CFB9, metalness: 0.045, roughness: 0.29,
+    clearcoat: 0.52, clearcoatRoughness: 0.19
   });
   const detail = new THREE.MeshStandardMaterial({ color: 0x746456, roughness: 0.65 });
   const nude = new THREE.MeshPhysicalMaterial({
@@ -69,13 +69,19 @@ export function buildSculptedMannequin(THREE, state) {
         const dx=Math.cos(t), dz=Math.sin(t);
         let x=cx+rx*dx, z=cz+rz*dz;
         if(opts.bust && dz>0){
-          const breastX=.20*Math.pow(c.bust/90,.18);
-          const bustBump=(.042+.15*breastSize)*gaussian(y,3.045,.135)*
-            (gaussian(Math.abs(x),breastX,.112))*Math.pow(Math.max(dz,0),1.4);
+          const breastX=.205*Math.pow(c.bust/90,.17);
+          const bustBump=(.085+.24*breastSize)*gaussian(y,3.055,.177)*
+            gaussian(Math.abs(x),breastX,.145)*Math.pow(Math.max(dz,0),1.65);
           z+=bustBump;
-          if(musculature>.64){
-            z+=(musculature-.64)*.019*gaussian(y,2.65,.24)*
-              gaussian(Math.abs(x),.13,.11)*dz;
+          // Subtle central sternum and shaped transition to the ribs.
+          z-=.019*gaussian(x,0,.057)*gaussian(y,3.068,.23)*dz;
+          // Natural-looking navel indentation, visible on the porcelain sculpture.
+          z-=.017*gaussian(x,0,.044)*gaussian(y,2.522,.041)*Math.pow(dz,4);
+          if(musculature>.52){
+            const definition=(musculature-.52)*.045;
+            z+=definition*gaussian(y,2.64,.21)*gaussian(Math.abs(x),.13,.085)*dz;
+            z+=definition*.58*gaussian(y,2.50,.125)*gaussian(Math.abs(x),.13,.075)*dz;
+            z-=definition*.33*gaussian(x,0,.037)*gaussian(y,2.58,.28)*dz;
           }
           if(y<2.23){
             const front = c.front==='space'?.095:c.front==='flat'?.0:.032;
@@ -108,22 +114,22 @@ export function buildSculptedMannequin(THREE, state) {
   function seamRing(x,y,z,rx,rz,rotation=0){
     const coords=[];
     for(let i=0;i<=64;i++){let a=i/64*2*Math.PI;coords.push([x+Math.cos(a)*rx,y+Math.sin(a)*Math.sin(rotation)*rx,z+Math.sin(a)*rz]);}
-    tubeCurve(coords,.0042,detail);
+    tubeCurve(coords,.0032,detail);
   }
 
   // Soft tapered torso, collarbone and integrated bust. This mesh has no
   // detached sphere breasts or sharply segmented waist.
   const torso=[
-    {y:1.80,x:0,z:0,rx:.188,rz:.217},
+    {y:1.80,x:0,z:0,rx:.196,rz:.220},
     {y:1.91,x:0,z:0,rx:hipsWidth*.70,rz:.284},
     {y:2.075,x:0,z:0,rx:hipsWidth,rz:.356+belly*.017},
     {y:2.235,x:0,z:0,rx:hipsWidth*.985,rz:.345+belly*.032},
     {y:2.405,x:0,z:belly*.023,rx:(waistWidth+hipsWidth*.12)*.92,rz:.307+belly*.065},
-    {y:2.570,x:0,z:belly*.023,rx:waistWidth,rz:.282+belly*.075},
-    {y:2.710,x:0,z:0,rx:waistWidth*.98+chestWidth*.13,rz:.288},
-    {y:2.895,x:0,z:0,rx:chestWidth*.95,rz:.329},
-    {y:3.060,x:0,z:0,rx:chestWidth,rz:.340},
-    {y:3.205,x:0,z:0,rx:shoulderWidth*.95,rz:.279},
+    {y:2.570,x:0,z:belly*.023,rx:waistWidth,rz:.268+belly*.075},
+    {y:2.710,x:0,z:0,rx:waistWidth*.99+chestWidth*.13,rz:.302},
+    {y:2.895,x:0,z:0,rx:chestWidth*.95,rz:.302},
+    {y:3.060,x:0,z:0,rx:chestWidth,rz:.296},
+    {y:3.205,x:0,z:0,rx:shoulderWidth*.95,rz:.265},
     {y:3.295,x:0,z:0,rx:shoulderWidth,rz:.234},
     {y:3.355,x:0,z:0,rx:shoulderWidth*.64,rz:.202},
     {y:3.441,x:0,z:0,rx:.158,rz:.156}
@@ -133,7 +139,7 @@ export function buildSculptedMannequin(THREE, state) {
   // Clavicle folds sculpted with elegant very faint curves.
   const clavicle = new THREE.MeshStandardMaterial({color:0xC2AB91,roughness:.5});
   for (const s of [-1,1]){
-    tubeCurve([[s*.08,3.389,.169],[s*.21,3.375,.194],[s*.35,3.337,.208],[s*(shoulderWidth-.032),3.303,.15]],.007,clavicle);
+    tubeCurve([[s*.08,3.389,.172],[s*.19,3.373,.188],[s*.34,3.344,.202],[s*(shoulderWidth-.038),3.305,.158]],.005,clavicle);
   }
   // Shaped neck, with overlap into the upper torso and face.
   loft([
@@ -150,15 +156,15 @@ export function buildSculptedMannequin(THREE, state) {
     let x=a.getX(i),y=a.getY(i),z=a.getZ(i);
     const jaw=THREE.MathUtils.smoothstep(y,-.94,.53);
     const face=1+Math.max(0,z)*.10*gaussian(y,-.12,.75);
-    x*=.239*(.77+.23*jaw);
-    z*=.225*face;
-    y*=.336;
+    x*=.221*(.80+.20*jaw);
+    z*=.206*face;
+    y*=.345;
     a.setXYZ(i,x,y,z);
   }
   headGeo.computeVertexNormals();
   const head=addMesh(headGeo,skin);
   head.position.set(0,3.845,.018);
-  for(const s of [-1,1])ellipse(body,[s*.235,3.83,-.008],[.026,.066,.043],skin,24);
+  for(const s of [-1,1])ellipse(body,[s*.213,3.82,-.012],[.019,.048,.036],skin,24);
 
   // Sculpted arms with smooth taper and carefully attached shoulders.
   for(const s of [-1,1]){
@@ -174,7 +180,8 @@ export function buildSculptedMannequin(THREE, state) {
     ].reverse();
     // profile passed bottom-to-top
     loft(arm.slice().reverse(),{slices:94,radial:62});
-    ellipse(body,[s*(shoulderWidth+.022),3.274,0],[.152+musculature*.016,.150,.148],skin,42);
+    // Seamless shoulder cap merges into the upper-arm loft rather than a ball joint.
+    ellipse(body,[s*(shoulderWidth+.01),3.27,-.015],[.116+musculature*.012,.123,.129],skin,48);
     // Elbow seam is subtle, at arm rotation.
     seamRing(s*(shoulderWidth+.228),2.69,.016,.103+musculature*.020,.11,0);
     loft([
@@ -185,17 +192,17 @@ export function buildSculptedMannequin(THREE, state) {
     ],{slices:31,radial:42});
     // Palm gently tapered and fully modelled individual fingers.
     const wristX=s*(shoulderWidth+.304);
-    ellipse(body,[wristX,1.928,.103],[.080,.142,.065],skin,40);
+    ellipse(body,[wristX,1.919,.103],[.082,.150,.064],skin,48);
     for(let finger=0;finger<4;finger++){
-      const relative=(finger-1.5)*.038;
-      const len=[.171,.218,.204,.150][finger];
+      const relative=(finger-1.5)*.041;
+      const len=[.154,.212,.203,.156][finger];
       const x=wristX+s*relative;
       const yp=1.851-(finger===0?.013:0);
       tubeCurve([
         [x,yp,.128],
         [x+s*relative*.20,yp-len*.52,.131],
         [x+s*relative*.35,yp-len,.146]
-      ],.018-(finger===3?.002:0),skin);
+      ],.017-(finger===3?.002:0),skin);
       ellipse(body,[x+s*relative*.35,yp-len,.146],[.018,.021,.019],skin,22);
     }
     tubeCurve([
@@ -207,25 +214,26 @@ export function buildSculptedMannequin(THREE, state) {
 
     // Long shaped legs, natural calf and thigh volumes.
     const hx=s*(hipsWidth*.55);
-    const kneeX=s*(.232*Math.pow(c.hips/96,.42));
-    const ankleX=s*(.255*Math.pow(c.hips/96,.40));
+    const kneeX=s*(.235*Math.pow(c.hips/96,.42))+(s===1?.017:0);
+    const ankleX=s*(.269*Math.pow(c.hips/96,.40))+(s===1?.052:0);
+    const footStep=s===1?.14:-.045;
     const thigh=.216*Math.pow(c.hips/96,.6)+.026*musculature;
     const calf=.135+.046*musculature;
     loft([
-      {y:.235,x:ankleX,z:.015,rx:.089,rz:.093},
-      {y:.35,x:ankleX,z:.016,rx:.094,rz:.097},
-      {y:.61,x:kneeX,z:-.012,rx:calf,rz:calf*.96},
-      {y:.76,x:kneeX,z:0,rx:calf*.97,rz:calf*.91},
-      {y:.92,x:kneeX,z:.035,rx:.128+musculature*.017,rz:.132},
-      {y:1.049,x:kneeX,z:.031,rx:.132+musculature*.019,rz:.14},
-      {y:1.23,x:THREE.MathUtils.lerp(kneeX,hx,.38),z:0,rx:thigh*.80,rz:.181},
+      {y:.235,x:ankleX,z:.015+footStep,rx:.089,rz:.093},
+      {y:.35,x:ankleX,z:.016+footStep*.94,rx:.094,rz:.097},
+      {y:.61,x:kneeX,z:-.012+footStep*.70,rx:calf,rz:calf*.96},
+      {y:.76,x:kneeX,z:footStep*.55,rx:calf*.97,rz:calf*.91},
+      {y:.92,x:kneeX,z:.035+footStep*.42,rx:.128+musculature*.017,rz:.132},
+      {y:1.049,x:kneeX,z:.031+footStep*.3,rx:.132+musculature*.019,rz:.14},
+      {y:1.23,x:THREE.MathUtils.lerp(kneeX,hx,.38),z:footStep*.16,rx:thigh*.80,rz:.181},
       {y:1.48,x:THREE.MathUtils.lerp(kneeX,hx,.76),z:0,rx:thigh*1.06,rz:.230},
       {y:1.71,x:hx,z:-.007,rx:thigh*1.14,rz:.244+belly*.012},
       {y:1.89,x:hx,z:-.004,rx:thigh*.98,rz:.232},
       {y:2.01,x:hx,z:0,rx:thigh*.80,rz:.203}
     ],{slices:120,radial:75});
-    seamRing(kneeX,1.025,.036,.129+musculature*.017,.132);
-    seamRing(ankleX,.266,.013,.088,.091);
+    seamRing(kneeX,1.025,.036+footStep*.31,.129+musculature*.017,.132);
+    seamRing(ankleX,.266,.013+footStep,.088,.091);
     // Sculpt foot as horizontal loft with rounded heel and broad toe box.
     const footCurve=[
       {z:-.16,y:.125,rx:.080,ry:.080},
@@ -246,7 +254,7 @@ export function buildSculptedMannequin(THREE, state) {
       const ry=smoothInterp(footCurve.map(p=>({y:p.z,cy:p.y,rx:p.rx,ry:p.ry})),z,'ry');
       for(let j=0;j<=lat;j++){
         const theta=2*Math.PI*j/lat;
-        vertices.push(ankleX+rx*Math.cos(theta),fy+ry*Math.sin(theta),z);
+        vertices.push(ankleX+rx*Math.cos(theta),fy+ry*Math.sin(theta),z+footStep);
         if(zi<segs&&j<lat){const ai=zi*(lat+1)+j,bi=ai+lat+1;idx.push(ai,ai+1,bi,ai+1,bi+1,bi);}
       }
     }
@@ -255,7 +263,7 @@ export function buildSculptedMannequin(THREE, state) {
     for(let t=0;t<5;t++){
       const fx=ankleX+(t-2)*.050*s;
       const toeLength=[.071,.088,.095,.078,.063][t];
-      ellipse(body,[fx,.078,.442+toeLength*.38],[.027,.026,toeLength*.63],skin,24);
+      ellipse(body,[fx,.078,.442+toeLength*.38+footStep],[.027,.026,toeLength*.63],skin,24);
     }
   }
 
@@ -317,5 +325,6 @@ export function buildSculptedMannequin(THREE, state) {
       // A thin fashion seam is used rather than covering the body in a solid suit.
       hipTrim();
   }
+  body.rotation.z=-.011;
   return root;
 }
