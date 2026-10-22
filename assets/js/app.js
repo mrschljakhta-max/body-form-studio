@@ -1,4 +1,4 @@
-import { buildSculptedMannequin } from './mannequin.js';
+import { buildSculptedMannequin } from './mannequin.js?v=0.2.2';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -35,73 +35,12 @@ function updateUI(){
   setActive('[data-garment]','garment',state.garment);setActive('[data-color]','color',state.color);setActive('[data-front]','front',state.front);
   $$('[data-measure]').forEach(el=>el.textContent=state[el.dataset.measure]);
   $('#statsType').textContent=state.preset.toUpperCase();$('#presetCaption').textContent=TITLES[state.preset]||TITLES.custom;
-  $('#outfitCaption').textContent=GARMENTS[state.garment]+' / '+state.color.toUpperCase();$('#heightRuler').textContent=state.height+' см';
+  $('#outfitCaption').textContent=state.garment==='mannequin'?'IVORY PORCELAIN / 3D':GARMENTS[state.garment]+' / '+state.color.toUpperCase();$('#heightRuler').textContent=state.height+' см';
 }
 function chooseTab(tab){
   $$('.rail-btn[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   $$('.panel').forEach(p=>{const show=p.dataset.panel===tab;p.hidden=!show;p.classList.toggle('active',show);});
   $('#panelTitle').textContent=({body:'Параметри тіла',anatomy:'Анатомічний профіль',wardrobe:'Гардероб',fit:'Посадка білизни'})[tab];
-}
-function circlePiece(parent,radius,y,height,material){
-  const obj=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,height,56),material);
-  obj.position.y=y;obj.castShadow=true;obj.receiveShadow=true;parent.add(obj);return obj;
-}
-function ball(parent,pos,scale,mat){
-  const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,28,20),mat);mesh.position.set(...pos);
-  mesh.scale.set(...scale);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
-}
-function segment(parent,a,b,r1,r2,mat){
-  const va=new THREE.Vector3(...a),vb=new THREE.Vector3(...b),vector=new THREE.Vector3().subVectors(vb,va),length=vector.length();
-  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,length,30,4),mat);
-  mesh.position.copy(va).add(vb).multiplyScalar(.5);
-  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vector.normalize());
-  mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
-}
-function tubular(parent,rings,material){
-  const seg=48,vertices=[],uv=[],indices=[];
-  rings.forEach((r,i)=>{
-    for(let j=0;j<=seg;j++){
-      const t=2*Math.PI*j/seg;
-      vertices.push(Math.cos(t)*r.rx,r.y,Math.sin(t)*r.rz+(r.z||0));
-      uv.push(j/seg,i/(rings.length-1));
-    }
-  });
-  for(let i=0;i<rings.length-1;i++){
-    for(let j=0;j<seg;j++){
-      const a=i*(seg+1)+j,b=a+seg+1;
-      indices.push(a,b,a+1,b,b+1,a+1);
-    }
-  }
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-  geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
-  geo.setIndex(indices);geo.computeVertexNormals();
-  const mesh=new THREE.Mesh(geo,material);
-  mesh.castShadow=true;mesh.receiveShadow=true;mesh.material.side=THREE.DoubleSide;parent.add(mesh);return mesh;
-}
-function makeTorsoRings(c,plus=0){
-  const hips=.45*c.hips/96,waist=.325*c.waist/72,bust=.44*c.bust/90,shoulders=.48*c.shoulders/41;
-  const belly=.015+c.belly/100*.10,depthChest=.285+.045*c.bust/100;
-  return [
-    {y:1.83,rx:hips*.43+plus,rz:.22+plus},
-    {y:1.94,rx:hips*.73+plus,rz:.32+plus},
-    {y:2.09,rx:hips+plus,rz:.35+plus},
-    {y:2.24,rx:hips*.96+plus,rz:.34+plus},
-    {y:2.40,rx:(waist+hips*.18)*.89+plus,rz:.295+belly*.4+plus,z:belly*.3},
-    {y:2.56,rx:waist+plus,rz:.282+belly+plus,z:belly*.3},
-    {y:2.73,rx:waist*.95+bust*.13+plus,rz:.30+plus},
-    {y:2.88,rx:bust*.91+plus,rz:depthChest+plus},
-    {y:3.08,rx:bust+plus,rz:depthChest+plus},
-    {y:3.22,rx:shoulders+plus,rz:.255+plus},
-    {y:3.33,rx:shoulders*.66+plus,rz:.23+plus},
-    {y:3.44,rx:.158+plus,rz:.155+plus}
-  ];
-}
-function bodyMaterial(){
-  return new THREE.MeshPhysicalMaterial({color:0xc5ab94,metalness:.07,roughness:.28,clearcoat:.46,clearcoatRoughness:.24});
-}
-function fabricMaterial(){
-  return new THREE.MeshPhysicalMaterial({color:COLORS[state.color],metalness:.015,roughness:.5,clearcoat:.14,clearcoatRoughness:.38,side:THREE.DoubleSide});
 }
 function buildModel(){
   if(!sceneReady)return;
