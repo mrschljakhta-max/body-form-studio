@@ -6,7 +6,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneRig } from 'three/addons/utils/SkeletonUtils.js';
 
 export const PREMIUM_MODEL_URL =
-  'https://www.innerscene.com/api/library/female-base-mesh-3d-person-rigged-a-pose-dba97ed5/download';
+  'https://raw.githubusercontent.com/nirholas/three.ws/main/public/avatars/parametric-base.glb';
 
 let cachedPromise;
 const near=(x,c,s)=>Math.exp(-.5*((x-c)/s)**2);
@@ -24,65 +24,50 @@ export function loadPremiumSource(){
 }
 
 function applyShape(THREE, obj, state){
-  const parts=[];
+  // This CC0 MakeHuman base supplies curated actual morph targets.
+  // Those change topology while preserving the integrated 52-bone skin.
+  const setMap=new Map();
+  const setter=(name,amount)=>setMap.set(name,Math.max(0,Math.min(1,amount)));
+  const ratio=(value,neutral,range)=>Math.max(0,Math.min(1,Math.abs(value-neutral)/range));
+  setter('bodyFeminine',.80);
+  setter('bodyMuscular',Math.max(0,(state.muscle-27)/70));
+  setter('bodySofter',Math.max(0,(30-state.muscle)/70));
+  setter('bodyHeavier',Math.max(0,((state.waist-72)/75+(state.hips-96)/70)/2));
+  setter('bodyThinner',Math.max(0,((72-state.waist)/37+(96-state.hips)/40)/2));
+  setter('shouldersWider',Math.max(0,(state.shoulders-41)/20));
+  setter('shouldersNarrower',Math.max(0,(41-state.shoulders)/11));
+  setter('chestWider',Math.max(0,(state.bust-90)/62)*.35);
+  setter('waistWider',Math.max(0,(state.waist-72)/70));
+  setter('waistNarrower',Math.max(0,(72-state.waist)/28));
+  setter('bustBigger',Math.max(0,(state.bust-90)/60)*.8);
+  setter('bustSmaller',Math.max(0,(90-state.bust)/31)*.6);
+  setter('hipsWider',Math.max(0,(state.hips-96)/65));
+  setter('hipsNarrower',Math.max(0,(96-state.hips)/28)*.75);
+  setter('bellyBigger',Math.max(0,(state.belly-15)/85)*.65);
+  setter('bellyToned',Math.max(0,(state.muscle-48)/52)*.7);
+  setter('armsMuscular',Math.max(0,(state.muscle-40)/60)*.87);
+  setter('thighsMuscular',Math.max(0,(state.muscle-40)/60)*.7);
+  setter('calvesMuscular',Math.max(0,(state.muscle-40)/60)*.6);
+  setter('armsThicker',Math.max(0,(state.waist-83)/62)*.3);
+  setter('thighsThicker',Math.max(0,(state.hips-103)/54)*.4);
+  setter('heightTaller',Math.max(0,(state.height-172)/33)*.35);
+  setter('heightShorter',Math.max(0,(172-state.height)/27)*.35);
   obj.traverse(node=>{
     if(!(node.isMesh||node.isSkinnedMesh))return;
-    // Replacing original textures with a single neutral porcelain material
-    // makes the render a mannequin, not a photorealistic person.
     node.material=new THREE.MeshPhysicalMaterial({
-      color:0xe2d0bc,metalness:0.055,roughness:0.27,
-      clearcoat:0.55,clearcoatRoughness:0.20,
+      color:0xe4d0ba,metalness:.035,roughness:.32,
+      clearcoat:.54,clearcoatRoughness:.23,
       side:THREE.DoubleSide
     });
-    node.castShadow=true;
-    node.receiveShadow=true;
-    node.frustumCulled=false;
-    if(!node.geometry||!node.geometry.attributes.position)return;
-    node.geometry=node.geometry.clone();
-    const geom=node.geometry, pos=geom.attributes.position;
-    geom.computeBoundingBox();
-    const box=geom.boundingBox;
-    if(box.max.y-box.min.y < 0.85)return;
-    parts.push({node,geom,pos,box});
-  });
-  if(!parts.length)return;
-  const globalMin=Math.min(...parts.map(p=>p.box.min.y));
-  const globalMax=Math.max(...parts.map(p=>p.box.max.y));
-  const h=globalMax-globalMin || 1;
-  for(const p of parts){
-    const pos=p.pos;
-    // Some glTF rigs use local mesh coordinates; for those, preserve shape
-    // rather than displacing vertices using assumptions about bone space.
-    if(h<1.0 || h>2.6)continue;
-    for(let i=0;i<pos.count;i++){
-      const x=pos.getX(i), y=pos.getY(i), z=pos.getZ(i);
-      const t=(y-globalMin)/h;
-      // Targeted width changes: different zones remain independent.
-      const shoulder=near(t,.78,.10)*.78;
-      const bust=near(t,.72,.08)*.67;
-      const waist=near(t,.61,.09)*.79;
-      const hips=near(t,.51,.10)*.72;
-      const muscle=near(t,.77,.17)*.23+near(t,.31,.20)*.18;
-      const ratio =
-        1+(state.shoulders/41-1)*shoulder+
-        (state.bust/90-1)*bust+
-        (state.waist/72-1)*waist+
-        (state.hips/96-1)*hips+
-        ((state.muscle||30)/100-.30)*muscle;
-      const torsoCenter=1-near(t,.60,.40)*.20;
-      pos.setX(i,x*clamp(ratio,0.65,1.70));
-      const belly=(state.belly||15)/100;
-      const breast=(state.breast||45)/100;
-      const frontMorph=z>0?((belly-.15)*.065*near(t,.62,.075)*near(x,0,.20)+
-       (breast-.45)*.071*near(t,.72,.08)*near(Math.abs(x),.11,.10)):0;
-      pos.setZ(i,z+frontMorph);
+    node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;
+    if(node.morphTargetInfluences&&node.morphTargetDictionary){
+      for(const [name,val] of setMap){
+        const index=node.morphTargetDictionary[name];
+        if(Number.isInteger(index))node.morphTargetInfluences[index]=val;
+      }
     }
-    pos.needsUpdate=true;
-    p.geom.computeVertexNormals();
-    p.geom.computeBoundingSphere();
-  }
+  });
 }
-
 export async function createPremiumMannequin(THREE,state){
   const gltf=await loadPremiumSource();
   const source=cloneRig(gltf.scene);
@@ -101,7 +86,7 @@ export async function createPremiumMannequin(THREE,state){
   source.position.set(-center.x*factor,-bounds.min.y*factor,-center.z*factor);
   root.scale.setScalar(state.height/172);
   root.userData.body=source;
-  root.userData.source='CC0 GLB';
+  root.userData.source='CC0 MakeHuman parametric GLB';
   root.userData.disposeOnRemove=true;
   root.userData.boneCount=0;
   source.traverse(o=>{if(o.isBone)root.userData.boneCount++;});
