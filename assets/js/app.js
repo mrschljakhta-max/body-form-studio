@@ -1,4 +1,4 @@
-import { createPremiumMannequin } from './premium-model.js?v=0.6.0';
+import { createPremiumMannequin } from './premium-model.js?v=0.7.0';
 import { buildSculptedMannequin } from './mannequin.js?v=0.4.0';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -83,7 +83,7 @@ function buildModel(){
     premiumSuccessful=true;
     show3DModel(next);
     $('#renderStatus').textContent='ПРЕМІАЛЬНА GLB-МОДЕЛЬ';
-    $('.viewport-caption.left-top small').textContent='Rigged CC0 · Porcelain';
+    $('.viewport-caption.left-top small').textContent=next.userData.posedArms?'Fashion Pose · Porcelain 3D':'Rigged CC0 · Porcelain';
   }).catch(error=>{
     if(!premiumUnavailable)console.warn('Premium GLB unavailable; procedural fallback remains:',error);
     premiumUnavailable=true;
