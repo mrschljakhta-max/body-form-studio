@@ -1,4 +1,4 @@
-import { createPremiumMannequin } from './premium-model.js?v=0.5.0';
+import { createPremiumMannequin } from './premium-model.js?v=0.6.0';
 import { buildSculptedMannequin } from './mannequin.js?v=0.4.0';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
