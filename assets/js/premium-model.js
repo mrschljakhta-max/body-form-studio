@@ -71,17 +71,17 @@ function createFacelessHead(THREE,skin){
     const crown=1-.11*THREE.MathUtils.smoothstep(oy,.45,.98);
     const chin=1-.30*(1-jaw);
     const width=(.218*chin*crown);
-    const cheek=1+.05*Math.exp(-((oy+.17)/.33)**2);
+    const cheek=1+.05*Math.exp(-Math.pow((oy+.17)/.33,2));
     let x=ox*width*cheek;
     const y=oy*.327;
     let z=oz*(.223*(.91+.09*jaw));
     // Soft planar face, restrained nose-bridge hint, no eyes or mouth.
     if(oz>.18){
       const mask=(Math.max(0,oz))**2;
-      const bridge=Math.exp(-((x)/.056)**2)*Math.exp(-((oy-.00)/.44)**2);
-      const cheeks=Math.exp(-((Math.abs(x)-.11)/.085)**2)*Math.exp(-((oy+.04)/.25)**2);
+      const bridge=Math.exp(-Math.pow(x/.056,2))*Math.exp(-Math.pow(oy/.44,2));
+      const cheeks=Math.exp(-Math.pow((Math.abs(x)-.11)/.085,2))*Math.exp(-Math.pow((oy+.04)/.25,2));
       z+=mask*(.023*bridge+.006*cheeks);
-      z-=mask*.012*Math.exp(-((x)/.10)**2)*Math.exp(-((oy+.73)/.2)**2);
+      z-=mask*.012*Math.exp(-Math.pow(x/.10,2))*Math.exp(-Math.pow((oy+.73)/.2,2));
     }
     positions.setXYZ(i,x,y,z);
   }
