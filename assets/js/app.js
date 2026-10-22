@@ -1,4 +1,4 @@
-import { createPremiumMannequin } from './premium-model.js?v=0.4.0';
+import { createPremiumMannequin } from './premium-model.js?v=0.5.0';
 import { buildSculptedMannequin } from './mannequin.js?v=0.4.0';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -24,10 +24,10 @@ const state = {
   color:(stored&&COLORS[stored.color])?stored.color:'burgundy'
 };
 let renderer, scene, camera, orbit, model, frameID, previewMaterial, currentView='front', autoRotate=false, targetCamera=null, sceneReady=false, geometryTimer=null;
-// Central feature flag: flip this to true after a valid CC0 GLB
-// is committed to assets/models/female-base-mesh.glb.
-const ENABLE_LOCAL_PREMIUM_GLB = false;
-let modelBuildVersion=0, premiumUnavailable=!ENABLE_LOCAL_PREMIUM_GLB, premiumSuccessful=false;
+// One central feature flag for the open CC0 parametric mannequin.
+// When unavailable (network/CORS) the sculpted model remains interactive.
+const ENABLE_CC0_PREMIUM_GLB = true;
+let modelBuildVersion=0, premiumUnavailable=!ENABLE_CC0_PREMIUM_GLB, premiumSuccessful=false;
 const sceneEl = $('#scene');
 const toastEl = $('#toast');
 let toastTimer;
