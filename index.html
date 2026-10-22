@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e13">
+  <meta name="description" content="Body Form Studio — інклюзивна 3D-примірочна з налаштуванням типу фігури й посадки одягу.">
+  <title>BODY FORM STUDIO — 3D Примірочна</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./assets/css/styles.css">
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+  <script type="module" src="./assets/js/app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Body Form Studio, головна">
+        <span class="brand-symbol">◇</span>
+        <span class="brand-text"><strong>BODY FORM</strong><small>STUDIO / VIRTUAL FIT</small></span>
+      </a>
+      <div class="topbar-center"><span class="signal-dot"></span> ІНТЕРАКТИВНА 3D-ПРИМІРОЧНА <span class="version">MVP 0.1</span></div>
+      <button id="saveBtn" class="outline-btn"><span class="save-icon">✧</span> Зберегти профіль</button>
+    </header>
+
+    <main class="studio">
+      <nav class="rail" aria-label="Розділи примірочної">
+        <button class="rail-btn active" data-tab="body" aria-label="Тип тіла та параметри" title="Тип тіла"><span>♙</span><small>ТІЛО</small></button>
+        <button class="rail-btn" data-tab="anatomy" aria-label="Анатомія та форма" title="Анатомія"><span>◉</span><small>ФОРМА</small></button>
+        <button class="rail-btn" data-tab="wardrobe" aria-label="Гардероб" title="Гардероб"><span>♧</span><small>ОДЯГ</small></button>
+        <button class="rail-btn" data-tab="fit" aria-label="Посадка білизни" title="Посадка білизни"><span>◇</span><small>ПОСАДКА</small></button>
+        <div class="rail-spacer"></div>
+        <button class="rail-btn muted" id="resetBtn" aria-label="Скинути налаштування" title="Скинути налаштування"><span>↺</span><small>СКИНУТИ</small></button>
+      </nav>
+
+      <section class="view-area" aria-label="3D-примірочна">
+        <div class="section-heading">
+          <div><div class="eyebrow"><span class="line-mark"></span> BODY CONFIGURATOR / 01</div><h1>Твоя форма. <em>Твої правила.</em></h1><p>Манекен підлаштовується під тебе, а не навпаки.</p></div>
+          <div class="scene-status"><span class="signal-dot"></span><span id="renderStatus">Завантаження 3D</span></div>
+        </div>
+        <div class="presets" role="group" aria-label="Готові типи фігури">
+          <button class="preset active" data-preset="balanced"><span class="preset-number">01</span><strong>ЗБАЛАНСОВАНА</strong><small>Balanced</small></button>
+          <button class="preset" data-preset="curvy"><span class="preset-number">02</span><strong>ПИШНА</strong><small>Curvy / Plus</small></button>
+          <button class="preset" data-preset="slim"><span class="preset-number">03</span><strong>ХУДОРЛЯВА</strong><small>Slim</small></button>
+          <button class="preset" data-preset="athletic"><span class="preset-number">04</span><strong>МУСКУЛИСТА</strong><small>Athletic</small></button>
+        </div>
+
+        <div class="viewport">
+          <div class="viewport-grid"></div>
+          <div class="viewport-caption left-top"><span class="mini-label">АВАТАР / ПРОТОТИП</span><strong id="presetCaption">BALANCED 01</strong><small>Матова порцеляна · 3D</small></div>
+          <div class="viewport-caption right-top"><span class="mini-label">ПОКРИТТЯ</span><strong id="outfitCaption">BODYSUIT / BURGUNDY</strong><small>Демонстраційна посадка</small></div>
+          <div id="scene" class="scene"><div class="scene-loading"><div class="spin"></div><span>Готуємо 3D-манекен…</span></div></div>
+          <div class="scale-ruler" aria-hidden="true"><div class="scale-lines"></div><span>ЗРІСТ <b id="heightRuler">172 см</b></span></div>
+          <div class="view-controls">
+            <button class="view-btn active" data-view="front">СПЕРЕДУ</button>
+            <button class="view-btn" data-view="side">ЗБОКУ</button>
+            <button class="view-btn" data-view="back">ЗЗАДУ</button>
+            <span class="view-separator"></span>
+            <button class="view-btn" id="rotateBtn" aria-pressed="false">⟳ 360°</button>
+          </div>
+          <div class="interaction-hint">↔ Перетягуй для обертання · Коліщатко для масштабу</div>
+        </div>
+
+        <div class="stats" aria-label="Поточні виміри тіла">
+          <div><small>ЗРІСТ</small><strong><span data-measure="height">172</span> <i>см</i></strong></div>
+          <div><small>ГРУДИ</small><strong><span data-measure="bust">90</span> <i>см</i></strong></div>
+          <div><small>ТАЛІЯ</small><strong><span data-measure="waist">72</span> <i>см</i></strong></div>
+          <div><small>СТЕГНА</small><strong><span data-measure="hips">96</span> <i>см</i></strong></div>
+          <div><small>СТАТУРА</small><strong id="statsType" class="stat-label">BALANCED</strong></div>
+        </div>
+      </section>
+
+      <aside class="controls" aria-label="Налаштування">
+        <div class="controls-title"><div><small>PERSONAL BODY EDITOR</small><h2 id="panelTitle">Параметри тіла</h2></div><span class="panel-symbol">✧</span></div>
+
+        <section class="panel active" data-panel="body">
+          <div class="panel-intro">Змінюй пропорції незалежно. Фігура плавно оновлюється у 3D.</div>
+          <div class="sliders">
+            <label class="control-range"><span>Зріст <output data-output="height">172 см</output></span><input type="range" min="145" max="205" step="1" data-field="height" value="172"></label>
+            <label class="control-range"><span>Обхват грудей <output data-output="bust">90 см</output></span><input type="range" min="68" max="150" step="1" data-field="bust" value="90"></label>
+            <label class="control-range"><span>Талія <output data-output="waist">72 см</output></span><input type="range" min="48" max="145" step="1" data-field="waist" value="72"></label>
+            <label class="control-range"><span>Стегна <output data-output="hips">96 см</output></span><input type="range" min="70" max="160" step="1" data-field="hips" value="96"></label>
+            <label class="control-range"><span>Ширина плечей <output data-output="shoulders">41 см</output></span><input type="range" min="32" max="65" step="1" data-field="shoulders" value="41"></label>
+            <label class="control-range"><span>Мускулатура <output data-output="muscle">30%</output></span><input type="range" min="0" max="100" step="1" data-field="muscle" value="30"></label>
+            <label class="control-range"><span>Об'єм живота <output data-output="belly">15%</output></span><input type="range" min="0" max="100" step="1" data-field="belly" value="15"></label>
+          </div>
+          <div class="panel-note">Параметри описують форму для візуалізації. Це не медичні вимірювання і не автоматичне визначення розміру.</div>
+        </section>
+
+        <section class="panel" data-panel="anatomy" hidden>
+          <div class="panel-intro">Зовнішність і анатомічні особливості налаштовуються незалежно від типу статури.</div>
+          <div class="field-title">ГРУДНА ЗОНА</div>
+          <label class="control-range"><span>Форма / об'єм грудей <output data-output="breast">45%</output></span><input type="range" min="0" max="100" step="1" data-field="breast" value="45"></label>
+          <div class="field-title">ПЕРЕДНЯ ПОСАДКА</div>
+          <div class="choice-list" role="group" aria-label="Передня посадка білизни">
+            <button class="choice active" data-front="neutral"><span>Нейтральна</span><small>Базовий контур</small></button>
+            <button class="choice" data-front="space"><span>Додатковий простір</span><small>Більша передня зона</small></button>
+            <button class="choice" data-front="flat"><span>Плаский профіль</span><small>Мінімальний контур</small></button>
+          </div>
+          <div class="panel-note">Налаштування добровільні. Ми не припускаємо анатомію за зовнішністю або типом фігури.</div>
+        </section>
+
+        <section class="panel" data-panel="wardrobe" hidden>
+          <div class="panel-intro">Початковий каталог демонстраційних форм. Реальні товари та лекала додамо пізніше.</div>
+          <div class="field-title">ТИП ВИРОБУ</div>
+          <div class="garment-grid">
+            <button class="garment active" data-garment="bodysuit"><span>◈</span><strong>Боді</strong></button>
+            <button class="garment" data-garment="bra"><span>◡</span><strong>Бюстгальтер</strong></button>
+            <button class="garment" data-garment="panties"><span>▽</span><strong>Білизна</strong></button>
+            <button class="garment" data-garment="dress"><span>♧</span><strong>Сукня</strong></button>
+          </div>
+          <div class="field-title">МАТЕРІАЛ / КОЛІР</div>
+          <div class="swatches">
+            <button class="swatch active" data-color="burgundy" aria-label="Бордовий" title="Бордовий" style="--swatch:#81374d"></button>
+            <button class="swatch" data-color="charcoal" aria-label="Графіт" title="Графіт" style="--swatch:#272c34"></button>
+            <button class="swatch" data-color="champagne" aria-label="Шампань" title="Шампань" style="--swatch:#c4a58a"></button>
+            <button class="swatch" data-color="ivory" aria-label="Слонова кістка" title="Слонова кістка" style="--swatch:#e9e2d7"></button>
+          </div>
+          <div class="panel-note">Демо-одяг повторює форму манекена. Реалістичну симуляцію тканин і перевірку посадки впровадимо окремо.</div>
+        </section>
+
+        <section class="panel" data-panel="fit" hidden>
+          <div class="panel-intro">Порівняй візуальний контур посадки, не змінюючи основну статуру.</div>
+          <div class="field-title">РЕЖИМ ПЕРЕДНЬОЇ ПОСАДКИ</div>
+          <div class="choice-list" role="group" aria-label="Режим посадки">
+            <button class="choice active" data-front="neutral"><span>Звичайна</span><small>Нейтральний контур</small></button>
+            <button class="choice" data-front="space"><span>Просторіша</span><small>Додатковий об'єм під виробом</small></button>
+            <button class="choice" data-front="flat"><span>Пласка</span><small>Зменшений контур</small></button>
+          </div>
+          <div class="field-title">ВАЖЛИВО ДЛЯ ВИБОРУ БІЛИЗНИ</div>
+          <div class="checklist"><div>✓ Перевіряй сітку розмірів виробника</div><div>✓ Зважай на еластичність матеріалу</div><div>✓ Не обирай компресію, що спричиняє біль</div></div>
+          <div class="panel-note">Справжню підтримку й комфорт можна оцінити лише з характеристиками конкретного виробу.</div>
+        </section>
+
+        <div class="panel-bottom"><button class="primary-btn" id="applyBtn">ПЕРЕГЛЯНУТИ У 3D <span>↗</span></button><p><span class="privacy-dot"></span> Налаштування зберігаються лише в цьому браузері</p></div>
+      </aside>
+    </main>
+
+    <footer class="footer"><span>BODY FORM STUDIO <b>© 2026</b></span><span>INCLUSIVE DESIGN / EARLY PROTOTYPE</span><span>Не є точною віртуальною приміркою або гарантією розміру</span></footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
