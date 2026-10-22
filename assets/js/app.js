@@ -1,5 +1,5 @@
-import { createPremiumMannequin } from './premium-model.js?v=0.3.0';
-import { buildSculptedMannequin } from './mannequin.js?v=0.2.2';
+import { createPremiumMannequin } from './premium-model.js?v=0.4.0';
+import { buildSculptedMannequin } from './mannequin.js?v=0.4.0';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -24,7 +24,10 @@ const state = {
   color:(stored&&COLORS[stored.color])?stored.color:'burgundy'
 };
 let renderer, scene, camera, orbit, model, frameID, previewMaterial, currentView='front', autoRotate=false, targetCamera=null, sceneReady=false, geometryTimer=null;
-let modelBuildVersion=0, premiumUnavailable=false, premiumSuccessful=false;
+// Central feature flag: flip this to true after a valid CC0 GLB
+// is committed to assets/models/female-base-mesh.glb.
+const ENABLE_LOCAL_PREMIUM_GLB = false;
+let modelBuildVersion=0, premiumUnavailable=!ENABLE_LOCAL_PREMIUM_GLB, premiumSuccessful=false;
 const sceneEl = $('#scene');
 const toastEl = $('#toast');
 let toastTimer;
@@ -84,7 +87,7 @@ function buildModel(){
   }).catch(error=>{
     if(!premiumUnavailable)console.warn('Premium GLB unavailable; procedural fallback remains:',error);
     premiumUnavailable=true;
-    $('#renderStatus').textContent='3D СЦЕНА АКТИВНА · РЕЗЕРВ';
+    $('#renderStatus').textContent='3D СЦЕНА АКТИВНА · SCULPT';
     $('.viewport-caption.left-top small').textContent='Скульптурна поверхня · 3D';
   });
 }
