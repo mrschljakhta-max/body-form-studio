@@ -1,0 +1,58 @@
+name: Import CC0 mannequin GLB
+on:
+  push:
+    paths:
+      - '.github/workflows/import-mannequin.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import-cc0-mannequin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Fetch original CC0 GLB
+        shell: bash
+        run: |
+          mkdir -p assets/models
+          curl --fail --show-error --location --retry 3 --retry-delay 3 \
+            -A "Body Form Studio CC0 model download" \
+            "https://www.innerscene.com/api/library/female-base-mesh-3d-person-rigged-a-pose-dba97ed5/download" \
+            -o assets/models/female-base-mesh.glb
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("assets/models/female-base-mesh.glb")
+          header=p.read_bytes()[:4]
+          assert header==b'glTF', f"Invalid GLB header: {header!r}"
+          assert 100_000 < p.stat().st_size < 25_000_000, p.stat().st_size
+          print("Verified GLB bytes:",p.stat().st_size)
+          PY
+      - name: Record provenance and license
+        shell: bash
+        run: |
+          cat > assets/models/SOURCE.md <<'EOF'
+          # CC0 female base mesh
+
+          **File:** `female-base-mesh.glb`
+
+          **Source:** Innerscene - Female base mesh / 3D Person, Rigged A-pose
+          https://www.innerscene.com/tools/library/3d-parts/female-base-mesh-3d-person-rigged-a-pose-dba97ed5
+
+          **License:** CC0 1.0 Universal (public domain), according to the original model listing.
+
+          The original model is based on MakeHuman CC0 assets. It is provided as
+          an optional high-detail mannequin base. The procedural model remains
+          a fallback when WebGL/GLB loading is unavailable.
+          EOF
+      - name: Commit downloaded binary asset
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/models/female-base-mesh.glb assets/models/SOURCE.md
+          if ! git diff --cached --quiet; then
+            git commit -m "assets: add CC0 rigged base mesh GLB"
+            git push
+          fi
